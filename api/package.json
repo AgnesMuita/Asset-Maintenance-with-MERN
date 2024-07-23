@@ -1,0 +1,51 @@
+{
+	"name": "api",
+	"version": "1.0.0",
+	"description": "service desk api",
+	"main": "index.js",
+	"author": "dk",
+	"license": "MIT",
+	"type": "module",
+	"scripts": {
+		"start": "nodemon index.js",
+		"test": "jest"
+	},
+	"dependencies": {
+		"@dicebear/collection": "^8.0.0",
+		"@dicebear/core": "^8.0.0",
+		"@faker-js/faker": "^8.4.1",
+		"@prisma/client": "^5.12.1",
+		"@resvg/resvg-js": "^2.6.2",
+		"bcryptjs": "^2.4.3",
+		"body-parser": "^1.20.2",
+		"cookie-parser": "^1.4.6",
+		"cors": "^2.8.5",
+		"crypto": "^1.0.1",
+		"date-fns": "^3.6.0",
+		"dotenv": "^16.4.5",
+		"exiftool-vendored": "^25.1.0",
+		"express": "^4.19.2",
+		"file-type": "^19.0.0",
+		"helmet": "^7.1.0",
+		"http-errors": "^2.0.0",
+		"https": "^1.0.0",
+		"jsonwebtoken": "^9.0.2",
+		"morgan": "^1.10.0",
+		"multer": "^1.4.5-lts.1",
+		"mysql": "^2.18.1",
+		"nanoid": "^5.0.7",
+		"node-cron": "^3.0.3",
+		"nodemon": "^3.1.0",
+		"postgresql": "^0.0.1",
+		"prisma": "^5.12.1",
+		"sharp": "^0.33.3",
+		"socket.io": "^4.7.5",
+		"uuid": "^9.0.1"
+	},
+	"devDependencies": {
+		"jest": "^29.7.0"
+	},
+	"prisma": {
+		"seed": "node prisma/seed.js"
+	}
+}

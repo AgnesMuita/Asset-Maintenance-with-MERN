@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Queue" ALTER COLUMN "Description" SET DATA TYPE VARCHAR;

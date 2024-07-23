@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Activity" ALTER COLUMN "description" SET DATA TYPE VARCHAR;
+
+-- AlterTable
+ALTER TABLE "Asset" ALTER COLUMN "name" SET DATA TYPE VARCHAR,
+ALTER COLUMN "specification" SET DATA TYPE VARCHAR;

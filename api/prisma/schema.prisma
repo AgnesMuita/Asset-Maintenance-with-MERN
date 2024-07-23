@@ -1,0 +1,515 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  // url      = "postgresql://postgres:8DJMkIOSUi3gNuYuKE0r@sdp-1.cmiecsjs07d7.eu-north-1.rds.amazonaws.com:5432/sdp-db"
+  url      = env("DATABASE_URL")
+  // url      = env("EC2_Db_URL")
+}
+
+model Case {
+  id          String     @id @default(cuid())
+  createdAt   DateTime   @default(now()) @db.Timestamptz()
+  updatedAt   DateTime   @updatedAt @db.Timestamptz()
+  caseTitle   String     @db.VarChar()
+  caseNumber  String     @unique @db.VarChar()
+  software    String?
+  hardware    String?
+  subject     String     @db.VarChar()
+  priority    Priority   @default(NORMAL)
+  status      Status     @default(OPEN)
+  currStatus  CurrStatus @default(ACTIVE)
+  origin      Origin     @default(WEB)
+  Description String     @db.VarChar()
+  resolution  String?
+  resolType   String?
+  resolved    Boolean    @default(false)
+  cancelled   Boolean    @default(false)
+  technician  String?
+  deletedAt   DateTime?  @db.Timestamptz()
+
+  //Relation Fields
+  owner        User?         @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ownerId      String?
+  asset        Asset?        @relation(fields: [assetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  assetId      String?
+  queues       Queue[]
+  media        Media[]
+  conversation Conversation?
+  trashedCases Trash[]
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  messages  Message[]
+  createdAt DateTime  @default(now()) @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @db.Timestamptz()
+
+  //Relation Fields
+  creator   User?   @relation(fields: [creatorId], references: [id], onDelete: NoAction)
+  creatorId String?
+  case      Case?   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId    String? @unique
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String   @db.VarChar()
+  createdAt DateTime @default(now()) @db.Timestamptz()
+
+  //Relation Fields
+  sender         User?         @relation(fields: [senderId], references: [id], onDelete: NoAction)
+  senderId       String?
+  converstation  Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String?
+}
+
+model Queue {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @db.Timestamptz()
+  name        String   @db.VarChar()
+  title       String   @db.VarChar()
+  type        String   @db.VarChar()
+  description String   @db.VarChar()
+  status      String?
+  resolved    Boolean  @default(false)
+  technician  String?
+
+  //Relation Fields
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String?
+  asset   Asset?  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  assetId String?
+  case    Case?   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId  String?
+}
+
+model User {
+  id            String     @id @default(cuid())
+  firstName     String
+  lastName      String
+  avatar        String     @default("")
+  password      String     @db.VarChar
+  email         String     @unique @db.VarChar
+  phone         String?    @db.VarChar
+  department    Department @default(ADMINISTRATION)
+  jobTitle      String?
+  contactMethod String?
+  active        Boolean    @default(true)
+  role          Role       @default(BASIC)
+  createdAt     DateTime   @default(now()) @db.Timestamptz()
+  updatedAt     DateTime   @updatedAt @db.Timestamptz()
+  deletedAt     DateTime?  @db.Timestamptz()
+
+  //Relation Fields
+  user                 User?              @relation("createdUsers", fields: [createdById], references: [id], onUpdate: Cascade)
+  createdById          String?
+  createdUsers         User[]             @relation("createdUsers")
+  tokens               Token[]
+  cases                Case[]
+  queues               Queue[]
+  assets               Asset[]
+  assetCreated         Asset[]            @relation("createdBy")
+  checkedAssets        AssetCheck[]       @relation("checkedBy")
+  checksCreated        AssetCheck[]       @relation("checkCreatedBy")
+  activities           Activity[]
+  creator              Document[]         @relation("creator")
+  modifier             Document[]         @relation("modifier")
+  createdForms         AllocationForm[]   @relation("createdForms")
+  modifiedForms        AllocationForm[]   @relation("modifiedForms")
+  announcements        Announcement[]
+  events               Event[]
+  news                 News[]
+  media                Media[]
+  createdConversations Conversation[]
+  message              Message[]
+  history              AssetHistory[]     @relation("assetUser")
+  issuedByhistory      AssetHistory[]     @relation("issuedBy")
+  createdBy            Maintenance[]      @relation("createdBy")
+  performedBy          Maintenance[]      @relation("technician")
+  articlesOwned        KnowledgeArticle[] @relation("owner")
+  articlesModified     KnowledgeArticle[] @relation("modifier")
+  following            User[]             @relation(name: "Followers")
+  followers            User[]             @relation(name: "Followers")
+  trashedUsers         Trash[]
+  trashedBy            Trash[]            @relation("trashedBy")
+
+  // @@unique(name: "userName", [firstName, lastName])
+}
+
+model Asset {
+  id               String     @id @default(cuid())
+  tag              String?    @unique
+  name             String     @db.VarChar()
+  deviceName       String?
+  color            String?
+  category         String
+  manufacturer     String?
+  model            String?
+  serialNo         String?
+  accessories      String?
+  batterySNo       String?
+  adaptorRatings   String?
+  department       Department @default(ADMINISTRATION)
+  condition        String?
+  assetStatus      String?
+  location         String
+  issuedBy         String?
+  allocationCheck  String?
+  approvalStatus   Boolean?   @default(false)
+  outsidePolicy    Boolean?   @default(false)
+  reason           String?    @db.VarChar()
+  active           Boolean    @default(true)
+  deletedAt        DateTime?  @db.Timestamptz()
+  createdAt        DateTime   @default(now()) @db.Timestamptz()
+  updatedAt        DateTime   @updatedAt @db.Timestamptz()
+  issuedAt         DateTime   @default(now()) @db.Timestamptz()
+  returnActualDate DateTime?  @db.Timestamptz()
+  returnDueDate    DateTime?  @db.Timestamptz()
+  specification    String     @db.VarChar()
+  conditionalNotes String?    @db.VarChar()
+
+  //Relation Fields
+  user            User?            @relation(fields: [userId], references: [id], onUpdate: Cascade)
+  userId          String?
+  createdBy       User?            @relation("createdBy", fields: [createdById], references: [id], onUpdate: Cascade)
+  createdById     String?
+  cases           Case[]
+  queues          Queue[]
+  maintenance     Maintenance[]
+  history         AssetHistory[]
+  allocationForms AllocationForm[]
+  trashedAssets   Trash[]
+  assetChecks     AssetCheck[]
+}
+
+model AssetHistory {
+  id                    String   @id @default(cuid())
+  assetLocation         String
+  assetConditionalNotes String
+  assetCondtion         String
+  assetStatus           String
+  issuedAt              DateTime @default(now()) @db.Timestamptz()
+  modifiedAt            DateTime @updatedAt @db.Timestamptz()
+
+  // relation Fields
+  asset          Asset           @relation(fields: [assetId], references: [id], onUpdate: NoAction)
+  assetId        String
+  user           User?           @relation("assetUser", fields: [userId], references: [id])
+  userId         String?
+  issuedBy       User?           @relation("issuedBy", fields: [issuedById], references: [id])
+  issuedById     String?
+  allocationForm AllocationForm?
+  assetCheck     AssetCheck[]
+
+  @@index([assetId])
+}
+
+model AssetCheck {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar()
+  rating      Int
+  notes       String   @db.VarChar()
+  checkType   String
+  checkResult String
+  checkedDate DateTime @db.Timestamptz()
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @db.Timestamptz()
+
+  // relation fields
+  asset               Asset         @relation(fields: [assetId], references: [id], onUpdate: Cascade)
+  assetId             String
+  checkedBy           User?         @relation("checkedBy", fields: [checkedById], references: [id], onUpdate: Cascade)
+  checkedById         String?
+  createdBy           User?         @relation("checkCreatedBy", fields: [createdById], references: [id], onUpdate: Cascade)
+  createdById         String?
+  relatedAllocation   AssetHistory? @relation(fields: [relatedAllocationId], references: [id], onUpdate: Cascade)
+  relatedAllocationId String?
+}
+
+model Activity {
+  id           String    @id @default(cuid())
+  subject      String
+  activityType String
+  priority     String
+  status       String
+  description  String    @db.VarChar()
+  regarding    String
+  duration     String?
+  startDate    DateTime? @db.Timestamptz()
+  dueDate      DateTime  @db.Timestamptz()
+  createdAt    DateTime  @default(now()) @db.Timestamptz()
+  updatedAt    DateTime  @updatedAt @db.Timestamptz()
+
+  //Relation Fields
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String?
+}
+
+model KnowledgeArticle {
+  id              String            @id @default(cuid())
+  title           String            @db.VarChar()
+  articlePNumber  Int               @default(autoincrement())
+  articleSubject  String?
+  stage           String?
+  status          String
+  description     String            @db.VarChar()
+  content         String            @db.VarChar()
+  visibility      Visibility        @default(EXTERNAL)
+  keywords        Json[]
+  media           Media[]
+  majorVNo        Int               @default(0)
+  minorVNo        Int               @default(0)
+  views           Int               @default(0)
+  language        Language          @default(ENGLISH)
+  reviewStatus    String?
+  published       Boolean           @default(false)
+  draft           Boolean           @default(true)
+  approved        Boolean           @default(false)
+  publishSubject  String?
+  deletedAt       DateTime?         @db.Timestamptz()
+  createdAt       DateTime          @default(now()) @db.Timestamptz()
+  modifiedAt      DateTime          @updatedAt @db.Timestamptz()
+  expirationDate  DateTime?         @db.Timestamptz()
+  publishedOn     DateTime?         @db.Timestamptz()
+  relatedArticles KnowledgeArticle? @relation("relatedArticle")
+
+  //Relation Fields
+  owner            User?             @relation("owner", fields: [ownerId], references: [id], onUpdate: Cascade)
+  ownerId          String?
+  modifier         User?             @relation("modifier", fields: [modifierId], references: [id], onUpdate: Cascade)
+  modifierId       String?
+  relatedArticle   KnowledgeArticle? @relation("relatedArticle", fields: [relatedArticleId], references: [id])
+  relatedArticleId String?           @unique
+  trashedArticles  Trash[]
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  data      String
+  fileMeta  Json[]
+  parent    String?
+  createdOn DateTime @default(now()) @db.Timestamptz()
+
+  // Relation Fields
+  article     KnowledgeArticle? @relation(fields: [articleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  articleId   String?
+  case        Case?             @relation(fields: [caseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  caseId      String?
+  log         Maintenance?      @relation(fields: [logId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  logId       String?
+  createdBy   User?             @relation(fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdById String?
+}
+
+model Document {
+  id          String     @id @default(cuid())
+  fileMeta    Json[]
+  data        String
+  docType     String
+  docCategory String
+  department  Department @default(GLOBAL)
+  createdAt   DateTime   @default(now()) @db.Timestamptz()
+  updatedAt   DateTime   @updatedAt @db.Timestamptz()
+
+  //Relation Fields
+  createdBy  User?   @relation("creator", fields: [userId], references: [id], onDelete: Cascade)
+  userId     String?
+  modifiedBy User?   @relation("modifier", fields: [modifierId], references: [id], onDelete: Cascade)
+  modifierId String?
+}
+
+model AllocationForm {
+  id        String   @id @default(cuid())
+  fileMeta  Json[]
+  data      String
+  createdAt DateTime @default(now()) @db.Timestamptz()
+  updatedAt DateTime @updatedAt @db.Timestamptz()
+
+  //Relation Fields
+  createdBy    User?        @relation("createdForms", fields: [userId], references: [id], onDelete: Cascade)
+  userId       String?
+  modifiedBy   User?        @relation("modifiedForms", fields: [modifierId], references: [id], onDelete: Cascade)
+  modifierId   String?
+  relatedAsset Asset        @relation(fields: [relatedId], references: [id], onDelete: Cascade)
+  relatedId    String
+  history      AssetHistory @relation(fields: [historyId], references: [id])
+  historyId    String       @unique
+}
+
+model Announcement {
+  id           String   @id @default(cuid())
+  title        String?
+  tags         Json[]
+  announcement String   @db.VarChar()
+  severity     Priority @default(NORMAL)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @db.Timestamptz()
+
+  //Relation Fields
+  createdBy User?   @relation(fields: [userId], references: [id], onUpdate: Cascade)
+  userId    String?
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.VarChar()
+  tags        Json[]
+  active      Boolean  @default(true)
+  eventDate   DateTime @db.Timestamptz()
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @db.Timestamptz()
+
+  //Relation Fields
+  createdBy User?   @relation(fields: [userId], references: [id], onUpdate: Cascade)
+  userId    String?
+}
+
+model News {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.VarChar()
+  tags        Json[]
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @db.Timestamptz()
+
+  //Relation Fields
+  createdBy User?   @relation(fields: [userId], references: [id], onUpdate: Cascade)
+  userId    String?
+}
+
+model Maintenance {
+  id          String   @id @default(cuid())
+  title       String?
+  description String   @db.VarChar()
+  tags        Json[]
+  remarks     String   @db.VarChar()
+  createdAt   DateTime @default(now())
+
+  //Relation Fields
+  createdBy   User?   @relation("createdBy", fields: [createdById], references: [id], onUpdate: Cascade)
+  createdById String?
+  performedBy User?   @relation("technician", fields: [userId], references: [id], onUpdate: Cascade)
+  userId      String?
+  asset       Asset?  @relation(fields: [assetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  assetId     String?
+  media       Media[]
+}
+
+model Trash {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz()
+
+  // relation fields
+  trashedBy        User?             @relation("trashedBy", fields: [trashedById], references: [id], onDelete: Cascade)
+  trashedById      String?
+  trashedCase      Case?             @relation(fields: [trashedCaseId], references: [id], onDelete: Cascade)
+  trashedCaseId    String?
+  trashedUser      User?             @relation(fields: [trashedUserId], references: [id], onDelete: Cascade)
+  trashedUserId    String?
+  trashedAsset     Asset?            @relation(fields: [trashedAssetId], references: [id], onDelete: Cascade)
+  trashedAssetId   String?
+  trashedArticle   KnowledgeArticle? @relation(fields: [trashedArticleId], references: [id], onDelete: Cascade)
+  trashedArticleId String?
+}
+
+model ItemCount {
+  id            String  @id @default(cuid())
+  fixed         Boolean @default(true)
+  cases         Int     @default(0)
+  users         Int     @default(0)
+  assets        Int     @default(0)
+  articles      Int     @default(0)
+  documents     Int     @default(0)
+  logs          Int     @default(0)
+  announcements Int     @default(0)
+  news          Int     @default(0)
+  events        Int     @default(0)
+
+  createdAt DateTime @default(now()) @db.Timestamptz()
+  updatedAt DateTime @updatedAt @db.Timestamptz()
+}
+
+model Token {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @db.Timestamptz()
+  hashedToken String
+  revoked     Boolean  @default(false)
+
+  //Relation fields
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+}
+
+enum Role {
+  BASIC
+  T1
+  T2
+  TECHNICIAN
+  ADMIN
+  SUPER_ADMIN
+  DEVELOPER
+}
+
+enum Priority {
+  URGENT
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum Origin {
+  EMAIL
+  WEB
+  MOBILE
+}
+
+enum Status {
+  OPEN
+  IN_PROGRESS
+  ON_HOLD
+  WAITING_FOR_DETAILS
+  RESEARCHING
+  PROBLEM_SOLVED
+  INFORMATION_PROVIDED
+}
+
+enum CurrStatus {
+  ACTIVE
+  RESOLVED
+  CANCELLED
+  MERGED
+  DUPLICATE
+}
+
+enum Department {
+  GLOBAL
+  PERSONAL
+  ADMINISTRATION
+  PLANT
+  LOGISTICS
+  SALES
+}
+
+enum Visibility {
+  INTERNAL
+  EXTERNAL
+}
+
+enum Language {
+  ENGLISH
+  SPANISH
+  RUSSIAN
+  FRENCH
+}
